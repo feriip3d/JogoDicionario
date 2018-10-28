@@ -52,6 +52,39 @@ void putsxy(const char *Texto, int Coluna, int Linha)
 	puts(Texto);
 }
 
+int Menu(void)
+{
+	pos = 11;
+	do
+	{
+		switch(pos)
+		{
+			case 11:
+				
+		}
+	}while(Nav(pos) > 0);
+}
+
+int Nav(int &pos)
+{
+	
+}
+
+void BotaoSelecionado(const char *Botao, int Coluna, int Linha, int pos);
+{
+	textcolor(cor_fundo);
+	textbackground(cor_texto);
+	putsxy(Botao,Coluna,Linha);
+	if(pos > 20 && pos < 29)
+		putsxy("USUARIOS",9,6);
+	else if (pos < 20)
+		putsxy("DICIONARIO",34,6);
+	else
+		putsxy("JOGAR",64,6);
+	textcolor(cor_texto);
+	textbackground(cor_fundo);
+}
+
 /* Desenha as bordas da janela, e suas divisões caso seja
 	especificado um valor especifico no campo TJanela */
 void DesenharTela(int CInicial, int LInicial, int CFinal, int LFinal, const char *Titulo, int TJanela)
