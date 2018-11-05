@@ -30,7 +30,7 @@ struct TpPessoa
 /* Protótipos */
 // Tela e Menu
 void DesenharTela(int CInicial, int LInicial, int CFinal, int LFinal, const char *Titulo, int TJanela);
-void putsxy(char *Texto, int Coluna, int Linha);
+void putsxy(const char *Texto, int Coluna, int Linha);
 void ExibeMenu(void);
 int Menu(void);
 int Nav(int &pos);
@@ -39,6 +39,9 @@ void Executa(FILE *Arquivo);
 
 // Funções do menu Usuarios
 void CadastrarPessoa(FILE *B_Arquivo);
+int BuscaExaustivaPessoa(FILE *B_Arquivo, TpPessoa PBuscar);
+void AlterarCadPessoa(FILE *B_Arquivo);
+void ConsultarCadPessoa(FILE *B_Arquivo);
 
 int main(void)
 {
@@ -65,6 +68,11 @@ void Executa(FILE *Arquivo)
 				case 11:
 					CadastrarPessoa(Arquivo);
 					break;
+				case 12:
+					AlterarCadPessoa(Arquivo);
+					break;
+				case 13:
+					ConsultarCadPessoa(Arquivo);
 			}
 		}
 		op=Menu();
@@ -319,6 +327,7 @@ void ExibeMenu(void)
 void CadastrarPessoa(FILE *B_Arquivo)
 {
 	TpPessoa RegPessoa;
+	int CadExiste;
 	char cbuffer[30];
 	B_Arquivo = fopen("Pessoa.dat","ab+");
 	clrscr();
@@ -330,10 +339,12 @@ void CadastrarPessoa(FILE *B_Arquivo)
 	
 	fflush(stdin);
 	getsxy(RegPessoa.Login,10,5);
-	while(strcmp(RegPessoa.Login,"\0") == 0)
+	CadExiste = BuscaExaustivaPessoa(B_Arquivo, RegPessoa);
+	while(strcmp(RegPessoa.Login,"\0") == 0 || CadExiste >= 0)
 	{
 		fflush(stdin);
 		getsxy(RegPessoa.Login,10,5);
+		CadExiste = BuscaExaustivaPessoa(B_Arquivo, RegPessoa);
 	}
 		
 	fflush(stdin);
@@ -368,8 +379,71 @@ void CadastrarPessoa(FILE *B_Arquivo)
 	fclose(B_Arquivo);
 }
 
-/*
-int VerificaCadastroPessoa(FILE *B_Arquivo)
+void AlterarCadPessoa(FILE *B_Arquivo)
 {
+	int pos;
+	TpPessoa Reg;
+	B_Arquivo = fopen("Pessoa.dat","rb+");
 	
-}*/
+	clrscr();
+	DesenharTela(1,1,80,25,"ALTERAR CADASTRO",0);
+	
+	putsxy("Digite o login do usuario a ser alterado: ",3,5);
+	getsxy(Reg.Login,45,5);
+	
+	if(BuscaExaustivaPessoa(B_Arquivo, Reg) >= 0)
+	{
+		putsxy("Nome: ",5,7);
+		putsxy("Senha: ",5,9);
+	}
+	else
+		putsxy("Usuario nao cadastrado!",5,7);
+	fclose(B_Arquivo);
+}
+
+void ConsultarCadPessoa(FILE *B_Arquivo)
+{
+	int pos;
+	TpPessoa Reg;
+	B_Arquivo = fopen("Pessoa.dat","rb");
+	
+	clrscr();
+	DesenharTela(1,1,80,25,"CONSULTAR CADASTRO",0);
+	
+	putsxy("Digite o login do usuario a ser consultado: ",3,5);
+	getsxy(Reg.Login,47,5);
+	pos = BuscaExaustivaPessoa(B_Arquivo, Reg);
+	if(pos >= 0)
+	{
+		fseek(B_Arquivo,pos,SEEK_SET);
+		fread(&Reg, sizeof(TpPessoa), 1, B_Arquivo);
+		putsxy("Nome: ",5,7);
+		putsxy(Reg.Nome,11,7);
+		putsxy("Total de Pontos: ",5,9);
+		gotoxy(22,9);
+		printf("%d",Reg.TotPontos);
+		putsxy("Data de Cadastro: ",5,11);
+		gotoxy(23,11);
+		printf("%d/%d/%d", Reg.Data.Dia, Reg.Data.Mes, Reg.Data.Ano);
+	}
+	else
+		putsxy("Usuario nao cadastrado!",5,7);
+		
+	getch();
+	fclose(B_Arquivo);
+}
+
+int BuscaExaustivaPessoa(FILE *B_Arquivo, TpPessoa PBuscar)
+{
+	TpPessoa Reg;
+	rewind(B_Arquivo);
+	
+	fread(&Reg, sizeof(TpPessoa), 1, B_Arquivo);
+	while(!feof(B_Arquivo) && stricmp(Reg.Login, PBuscar.Login) != 0)
+		fread(&Reg, sizeof(TpPessoa), 1, B_Arquivo);
+	
+	if(!feof(B_Arquivo) && Reg.Status == 0)
+		return ftell(B_Arquivo)-sizeof(TpPessoa);
+	else
+		return -1;
+}
