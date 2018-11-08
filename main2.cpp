@@ -36,12 +36,16 @@ int Menu(void);
 int Nav(int &pos);
 void BotaoSelecionado(const char *Botao, int Coluna, int Linha, int pos);
 void Executa(FILE *Arquivo);
+void DeletaLinha(int x, int y);
 
 // Funções do menu Usuarios
 void CadastrarPessoa(FILE *B_Arquivo);
 int BuscaExaustivaPessoa(FILE *B_Arquivo, TpPessoa PBuscar);
 void AlterarCadPessoa(FILE *B_Arquivo);
 void ConsultarCadPessoa(FILE *B_Arquivo);
+void SelecionaAlteraPessoa(int opcao, TpPessoa &Reg);
+void RelatorioPessoa(FILE *B_Arquivo);
+
 
 int main(void)
 {
@@ -73,6 +77,8 @@ void Executa(FILE *Arquivo)
 					break;
 				case 13:
 					ConsultarCadPessoa(Arquivo);
+				case 15:
+					RelatorioPessoa(Arquivo);
 			}
 		}
 		op=Menu();
@@ -219,6 +225,22 @@ void DesenharTela(int CInicial, int LInicial, int CFinal, int LFinal, const char
 {
 	int i, j;
 		
+	// Desenha os cantos da tela
+	gotoxy(CInicial, LInicial);
+	printf("%c", 201);
+	gotoxy(CFinal, LInicial);
+	printf("%c", 187);
+	gotoxy(CInicial, LFinal);
+	printf("%c", 200);
+	gotoxy(CFinal, LFinal);
+	printf("%c", 188);
+	
+	// Canto do titulo da janela
+	gotoxy(CInicial, LInicial+2);
+	printf("%c", 204);
+	gotoxy(CFinal, LInicial+2);
+	printf("%c", 185);
+	
 	// Desenha as bordas
 	for(i=LInicial+1; i < LFinal; i++)
 	{
@@ -239,22 +261,6 @@ void DesenharTela(int CInicial, int LInicial, int CFinal, int LFinal, const char
 		gotoxy(i, LInicial+2);
 		printf("%c", 205);
 	}
-	
-	// Desenha os cantos da tela
-	gotoxy(CInicial, LInicial);
-	printf("%c", 201);
-	gotoxy(CFinal, LInicial);
-	printf("%c", 187);
-	gotoxy(CInicial, LFinal);
-	printf("%c", 200);
-	gotoxy(CFinal, LFinal);
-	printf("%c", 188);
-	
-	// Canto do titulo da janela
-	gotoxy(CInicial, LInicial+2);
-	printf("%c", 204);
-	gotoxy(CFinal, LInicial+2);
-	printf("%c", 185);
 	
 	// Se a janela for do tipo Menu, desenha suas divisoes
 	if(TJanela == 1)
@@ -379,10 +385,51 @@ void CadastrarPessoa(FILE *B_Arquivo)
 	fclose(B_Arquivo);
 }
 
+void RelatorioPessoa(FILE *B_Arquivo)
+{
+	TpPessoa Reg;
+	int linha=5, i;
+	
+	clrscr();
+	B_Arquivo = fopen("Pessoa.dat","rb");
+	
+	DesenharTela(1,1,80,25,"RELATORIO", 0);
+	putsxy("Login",3,4);
+	putsxy("Nome",13,4);
+	putsxy("Pontos",53,4);
+	putsxy("Data de Cadastro",64,4);
+	
+	fread(&Reg, sizeof(TpPessoa), 1, B_Arquivo);
+	while(!feof(B_Arquivo))
+	{
+		putsxy("Pressione ENTER para continuar.",3,24);
+		if (linha == 23)
+		{
+			getch();
+			for(i=5; i<linha; i++)
+				DeletaLinha(2,i);
+			linha = 5;
+		}
+		
+		putsxy(Reg.Login,3,linha);
+		putsxy(Reg.Nome,13,linha);
+		gotoxy(53,linha);
+		printf("%d", Reg.TotPontos);
+		gotoxy(64,linha);
+		printf("%d/%d/%d", Reg.Data.Dia, Reg.Data.Mes, Reg.Data.Ano);
+				
+		linha++;
+		fread(&Reg, sizeof(TpPessoa), 1, B_Arquivo);
+	}
+	
+	getch();
+}
+
 void AlterarCadPessoa(FILE *B_Arquivo)
 {
-	int pos;
+	int pos, i;
 	TpPessoa Reg;
+	char senha_bf[50], op;
 	B_Arquivo = fopen("Pessoa.dat","rb+");
 	
 	clrscr();
@@ -391,14 +438,77 @@ void AlterarCadPessoa(FILE *B_Arquivo)
 	putsxy("Digite o login do usuario a ser alterado: ",3,5);
 	getsxy(Reg.Login,45,5);
 	
+	pos = BuscaExaustivaPessoa(B_Arquivo, Reg);
 	if(BuscaExaustivaPessoa(B_Arquivo, Reg) >= 0)
 	{
+		putsxy("Pressione ENTER para prosseguir ou BACKSPACE para alterar.",3,24);
+		rewind(B_Arquivo);
+		fseek(B_Arquivo, pos, SEEK_SET);
+		fread(&Reg, sizeof(TpPessoa),1, B_Arquivo);
 		putsxy("Nome: ",5,7);
+		putsxy(Reg.Nome,11,7);
 		putsxy("Senha: ",5,9);
+		sprintf(senha_bf,"%d",Reg.Senha);
+		for(i=0; i<strlen(senha_bf); i++)
+			putsxy("*",i+12,9);
+				
+		for(i=7; i<=9; i+=2)
+		{
+			gotoxy(3,i);
+			printf("%c", 16);
+			fflush(stdin);
+			op = getch();
+			if (op == 8)
+				SelecionaAlteraPessoa(i, Reg);
+			putsxy(" ",3,i);
+		}
+		
+		fseek(B_Arquivo,pos,SEEK_SET);
+		fwrite(&Reg, sizeof(TpPessoa), 1, B_Arquivo);
+		putsxy("Alterações gravadas!",5,11);
+		getch();
 	}
 	else
 		putsxy("Usuario nao cadastrado!",5,7);
 	fclose(B_Arquivo);
+}
+
+void DeletaLinha(int x, int y)
+{
+	for(; x<80; x++)
+		putsxy(" ",x,y);
+}
+
+void SelecionaAlteraPessoa(int opcao, TpPessoa &Reg)
+{
+	if(opcao == 7)
+	{
+		fflush(stdin);
+		DeletaLinha(11,7);
+		getsxy(Reg.Nome,11,7);
+		while(strcmp(Reg.Nome,"\0") == 0)
+		{
+			DeletaLinha(11,7);
+			fflush(stdin);
+			getsxy(Reg.Nome,11,7);
+		}
+	}
+	
+	if(opcao == 9)
+	{
+		char cbuffer[50];
+		DeletaLinha(12,9);
+		fflush(stdin);
+		getsxy(cbuffer,12,9);
+		Reg.Senha = atoi(cbuffer);
+		while(Reg.Senha <= 0)
+		{
+			DeletaLinha(12,9);
+			fflush(stdin);
+			getsxy(cbuffer,12,9);
+			Reg.Senha = atoi(cbuffer);
+		}
+	}
 }
 
 void ConsultarCadPessoa(FILE *B_Arquivo)
