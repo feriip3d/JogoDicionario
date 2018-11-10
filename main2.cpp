@@ -20,6 +20,18 @@ struct TpData
 	int Dia, Mes, Ano;
 };
 
+/*struct PalavraForca (dat)
+{
+	Palavra
+	Login
+	Acertou	
+}*/
+
+struct TpDicionario
+{
+	char port[30], ing[30], sig[100];
+};
+
 struct TpPessoa
 {
 	char Login[10], Nome[40];
@@ -31,6 +43,7 @@ struct TpPessoa
 // Tela e Menu
 void DesenharTela(int CInicial, int LInicial, int CFinal, int LFinal, const char *Titulo, int TJanela);
 void putsxy(const char *Texto, int Coluna, int Linha);
+void getsxy(char *PtrStr, int Coluna, int Linha);
 void ExibeMenu(void);
 int Menu(void);
 int Nav(int &pos);
@@ -39,12 +52,18 @@ void Executa(FILE *Arquivo);
 void DeletaLinha(int x, int y);
 
 // Funções do menu Usuarios
+void ReescreverArquivoPessoa(FILE *B_Arquivo);
 void CadastrarPessoa(FILE *B_Arquivo);
 int BuscaExaustivaPessoa(FILE *B_Arquivo, TpPessoa PBuscar);
 void AlterarCadPessoa(FILE *B_Arquivo);
 void ConsultarCadPessoa(FILE *B_Arquivo);
 void SelecionaAlteraPessoa(int opcao, TpPessoa &Reg);
 void RelatorioPessoa(FILE *B_Arquivo);
+void ExcluirPessoa(FILE *B_Arquivo);
+
+// Funções do menu Dicionario
+void IncluirPalavra(FILE *PtrArq);
+
 
 
 int main(void)
@@ -52,12 +71,156 @@ int main(void)
 	FILE *Arquivo;
 	textcolor(cor_texto);
 	textbackground(cor_fundo);
+	ReescreverArquivoPessoa(Arquivo);
 	clrscr();
 	
 	Executa(Arquivo);
 	getch();
 	
 	return 0;
+}
+
+// Dicionario
+void IncluirPalavra(FILE *PtrArq){
+	TpDicionario dicio;
+	clrscr();
+	PtrArq = fopen("dicionario.dat", "rb+");
+	
+	if(PtrArq == NULL){
+		DesenharTela(1,1,80,25,"DICIONARIO",0);
+		gotoxy(3,5);printf("Arquivo nao encontrado, deseja abrir? (S/N)");
+		if(toupper(getche()) == 'S'){
+			PtrArq = fopen("dicionario.dat", "ab+");
+		}
+	}
+	else{
+		fclose(PtrArq);
+		fopen("dicionario.dat", "ab+");
+	}
+	clrscr();
+	DesenharTela(1,1,80,25,"CADASTRAR PALAVRA",0);
+	gotoxy(3,5);printf("Palavra em Portugues: ");
+	gets(dicio.port);
+	while(strcmp(dicio.port, "\0") != 0){
+		do{
+			gotoxy(3,7);printf("Palavra em Ingles:                          ");
+			gotoxy(21,7);gets(dicio.ing);
+		}while(strcmp(dicio.ing, "\0") ==0);
+		do{
+			gotoxy(3,9);printf("Significado:                             ");
+			gotoxy(15,9);gets(dicio.sig);
+		}while(strcmp(dicio.sig, "\0") ==0);
+		fwrite(&dicio, sizeof(TpDicionario), 1, PtrArq);
+		clrscr();
+		DesenharTela(1,1,80,25,"CADASTRAR PALAVRA",0);
+		gotoxy(3,5);printf("Palavra em Portugues: ");
+		gets(dicio.port);
+	}
+	fclose(PtrArq);
+}
+
+// ???
+/*
+int BuscaPalavra(FILE *PtrArq, TpDicionario PalavraB){
+	TpDicionario Reg;
+	rewind(B_Arquivo);
+	
+	Reg.Status = 1;
+	while(Reg.Status == 1 && !feof(B_Arquivo))
+	{
+		fread(&Reg, sizeof(TpPessoa), 1, B_Arquivo);
+		while(!feof(B_Arquivo) && stricmp(Reg.Login, PBuscar.Login) != 0)
+			fread(&Reg, sizeof(TpPessoa), 1, B_Arquivo);
+	}
+	
+	if(!feof(B_Arquivo))
+		return ftell(B_Arquivo)-sizeof(TpPessoa);
+	else
+		return -1;
+}
+*/
+/*
+void AlteraPalavra(FILE *PtrArq){
+	TpDicionario dicio;
+	int tipo = 0;
+	PtrArq = fopen("TpDicionario", "rb+");
+	clrscr();
+	gotoxy(3,3);printf("1 - Portugues");
+	gotoxy(3,4);printf("2 - Ingles");
+	tipo = getch();
+	if(tipo == 1||tipo == 2){
+		do{
+			gotoxy(3,6);printf("Digite a palavra:                                     ");
+			gotoxy(21,6);gets(palavra);
+		}while(strcmp(palavra, "\0") == 0);
+		pos=busca(PtrArq,palavra, tipo);
+	}else{
+		gotoxy(3, 6);printf("Invalido");
+	}
+	
+	if(pos != -1){
+		if(tipo == 1){
+			fseek(PtrArq, pos, 0);
+			fread(&dicio, sizeof(TpDicionario),1,PtrArq);
+			fflush(stdin);scanf("%s", &dicio.ing);
+			fseek(PtrArq,pos,0);
+			fwrite(&dicio, sizeof(TpDicionario), 1, PtrArq);
+		}
+	}
+	fclose(PtrArq);
+}
+*/
+//
+/*void JogoForca(void)
+{
+	TpPessoa User;
+	TpDicionario Palavra;
+	FILE *PtrArq;
+	int login_status, qt_palavras;
+	
+	login_status=Login(User);
+	
+	if(login_status == 1)
+	{
+		PtrArq = fopen("Palavras.dat","rb");
+		qt_palavras = TamanhoArquivo(PtrArq)/sizeof(TpDicio);
+		
+		DesenharTela(1,1,80,25,"FORCA",2);
+	}
+}*/
+
+int Login(TpPessoa &User)
+{
+	int pos, senha;
+	FILE *PtrArq;
+	
+	PtrArq = fopen("Pessoa.dat","rb");
+	
+	clrscr();
+	DesenharTela(1,1,80,25,"LOGIN",0);
+	putsxy("Login: ",3,5);
+	putsxy("Senha: ",3,7);
+	
+	getsxy(User.Login,10,5);
+	pos = BuscaExaustivaPessoa(PtrArq, User);
+	if(pos >= 0)
+	{
+		gotoxy(11,7);
+		scanf("%d", &senha);
+		
+		if(senha == User.Senha)
+		{
+			fclose(PtrArq);
+			return 1;
+		}
+		else
+			putsxy("Senha incorreta!",3,9);
+	}
+	else
+		putsxy("Usuario não encontrado!",3,9);
+	
+	fclose(PtrArq);
+	return -1;
 }
 
 // Executa uma ação de acordo com o valor retornado pelo Menu
@@ -77,8 +240,16 @@ void Executa(FILE *Arquivo)
 					break;
 				case 13:
 					ConsultarCadPessoa(Arquivo);
+					break;
 				case 15:
 					RelatorioPessoa(Arquivo);
+					break;
+				case 16:
+					ExcluirPessoa(Arquivo);
+					break;
+					
+				case 21:
+					IncluirPalavra(Arquivo);
 			}
 		}
 		op=Menu();
@@ -92,10 +263,11 @@ void putsxy(const char *Texto, int Coluna, int Linha)
 	puts(Texto);
 }
 
-void getsxy(char *PonteiroString, int Coluna, int Linha)
+/* Lê uma string no local especificado */
+void getsxy(char *PtrStr, int Coluna, int Linha)
 {
 	gotoxy(Coluna, Linha);
-	gets(PonteiroString);
+	gets(PtrStr);
 }
 
 int Menu(void)
@@ -123,6 +295,9 @@ int Menu(void)
 			case 15:
 				BotaoSelecionado("RELATORIO",9,12,pos);
 				break;
+			case 16:
+				BotaoSelecionado("EXCLUIR",9,13,pos);
+				break;
 			
 			// Dicionario
 			case 21:
@@ -142,6 +317,9 @@ int Menu(void)
 				break;
 			case 26:
 				BotaoSelecionado("TRADUTOR",34,13,pos);
+				break;
+			case 27:
+				BotaoSelecionado("EXCLUIR",34,14,pos);
 				break;
 				
 			// Jogo
@@ -184,9 +362,9 @@ int Nav(int &local)
 		return -1;
 	
 	if(local == 10)
-		local+=5;
-	if(local == 16)
-		local-=5;
+		local+=6;
+	if(local == 17)
+		local-=6;
 	if(local < 10)
 		local = 33;
 	if(local == 34)
@@ -194,8 +372,8 @@ int Nav(int &local)
 	if(local > 34)
 		local = 11;
 	if(local == 20)
-		local = 26;
-	if(local == 27)
+		local = 27;
+	if(local == 28)
 		local = 21;
 	if(local == 30)
 		local = 33;
@@ -310,7 +488,8 @@ void ExibeMenu(void)
 	putsxy("Alterar",9,9);
 	putsxy("Consultar",9,10);
 	putsxy("Ordenar(?)",9,11);
-	putsxy("Relatório",9,12);
+	putsxy("Relatorio",9,12);
+	putsxy("Excluir",9,13);
 	
 	// Coluna com as opções relacionadas ao dicionário de palavras
 	putsxy("Dicionario",34,6);
@@ -318,8 +497,9 @@ void ExibeMenu(void)
 	putsxy("Alterar",34,9);
 	putsxy("Consultar",34,10);
 	putsxy("Ordenar(?)",34,11);
-	putsxy("Relatório",34,12);
+	putsxy("Relatorio",34,12);
 	putsxy("Tradutor",34,13);
+	putsxy("Excluir",34,14);
 	
 	// Coluna relacionada ao jogo
 	putsxy("Jogar",64,6);
@@ -328,6 +508,33 @@ void ExibeMenu(void)
 	
 	// Botão de sair
 	putsxy("Sair",70,24);
+}
+
+void ReescreverArquivoPessoa(FILE *B_Arquivo)
+{
+	FILE *Arq_Antigo;
+	TpPessoa Reg;
+	if(rename("Pessoa.dat","Pessoa.old") == 0)
+	{
+		clrscr();
+		DesenharTela(1,1,80,20,"ATUALIZANDO",0);
+		putsxy("Atualizando arquivos...",5,5);
+		B_Arquivo = fopen("Pessoa.dat","wb");
+		Arq_Antigo = fopen("Pessoa.old","rb");
+		
+		fread(&Reg, sizeof(TpPessoa), 1, Arq_Antigo);
+		while(!feof(Arq_Antigo))
+		{
+			if(Reg.Status == 0)
+				fwrite(&Reg, sizeof(TpPessoa), 1, B_Arquivo);
+			fread(&Reg, sizeof(TpPessoa), 1, Arq_Antigo);
+		}
+		
+		fclose(Arq_Antigo);
+		fclose(B_Arquivo);
+		
+		remove("Pessoa.old");
+	}
 }
 
 void CadastrarPessoa(FILE *B_Arquivo)
@@ -385,6 +592,54 @@ void CadastrarPessoa(FILE *B_Arquivo)
 	fclose(B_Arquivo);
 }
 
+void ExcluirPessoa(FILE *B_Arquivo)
+{
+	int pos, i;
+	TpPessoa Reg;
+	B_Arquivo = fopen("Pessoa.dat","rb+");
+	
+	clrscr();
+	DesenharTela(1,1,80,25,"EXCLUIR CADASTRO",0);
+	
+	putsxy("Digite o login do usuario a ser excluido: ",3,5);
+	getsxy(Reg.Login,45,5);
+	
+	pos = BuscaExaustivaPessoa(B_Arquivo, Reg);
+	if(BuscaExaustivaPessoa(B_Arquivo, Reg) >= 0)
+	{
+		rewind(B_Arquivo);
+		fseek(B_Arquivo, pos, SEEK_SET);
+		fread(&Reg, sizeof(TpPessoa),1, B_Arquivo);
+		putsxy("Nome: ",5,7);
+		putsxy(Reg.Nome,11,7);
+		putsxy("Total de Pontos: ",5,9);
+		gotoxy(27,9);
+		printf("%d", Reg.TotPontos);
+		putsxy("Data de Cadastro: ",5,11);
+		gotoxy(27,11);
+		printf("%02d/%d/%d",Reg.Data.Dia, Reg.Data.Mes, Reg.Data.Ano);
+		
+		putsxy("Deseja remover esse cadastro? (s/n).",3,23);
+		gotoxy(3,24);
+		printf("%c: ", 16);
+		if(tolower(getche()) == 's')
+		{
+			Reg.Status = 1;
+			putsxy("Deletado!",5,13);
+		}
+		else
+			putsxy("Cancelado!",5,13);
+		
+		fseek(B_Arquivo,pos,SEEK_SET);
+		fwrite(&Reg, sizeof(TpPessoa), 1, B_Arquivo);
+		getch();
+	}
+	else
+		putsxy("Usuario nao cadastrado!",5,7);
+	
+	fclose(B_Arquivo);
+}
+
 void RelatorioPessoa(FILE *B_Arquivo)
 {
 	TpPessoa Reg;
@@ -411,14 +666,16 @@ void RelatorioPessoa(FILE *B_Arquivo)
 			linha = 5;
 		}
 		
-		putsxy(Reg.Login,3,linha);
-		putsxy(Reg.Nome,13,linha);
-		gotoxy(53,linha);
-		printf("%d", Reg.TotPontos);
-		gotoxy(64,linha);
-		printf("%d/%d/%d", Reg.Data.Dia, Reg.Data.Mes, Reg.Data.Ano);
-				
-		linha++;
+		if(Reg.Status == 0)
+		{
+			putsxy(Reg.Login,3,linha);
+			putsxy(Reg.Nome,13,linha);
+			gotoxy(53,linha);
+			printf("%d", Reg.TotPontos);
+			gotoxy(64,linha);
+			printf("%02d/%d/%d", Reg.Data.Dia, Reg.Data.Mes, Reg.Data.Ano);
+			linha++;
+		}
 		fread(&Reg, sizeof(TpPessoa), 1, B_Arquivo);
 	}
 	
@@ -427,7 +684,7 @@ void RelatorioPessoa(FILE *B_Arquivo)
 
 void AlterarCadPessoa(FILE *B_Arquivo)
 {
-	int pos, i;
+	int pos, i, confirmar;
 	TpPessoa Reg;
 	char senha_bf[50], op;
 	B_Arquivo = fopen("Pessoa.dat","rb+");
@@ -462,11 +719,22 @@ void AlterarCadPessoa(FILE *B_Arquivo)
 				SelecionaAlteraPessoa(i, Reg);
 			putsxy(" ",3,i);
 		}
+		putsxy("Digite a senha atual para confirmar: ",5,11);
+		gotoxy(42,11);
+		scanf("%d",&confirmar);
 		
-		fseek(B_Arquivo,pos,SEEK_SET);
-		fwrite(&Reg, sizeof(TpPessoa), 1, B_Arquivo);
-		putsxy("Alterações gravadas!",5,11);
-		getch();
+		DeletaLinha(5,11);
+		if(Reg.Senha == confirmar)
+		{
+			fseek(B_Arquivo,pos,SEEK_SET);
+			fwrite(&Reg, sizeof(TpPessoa), 1, B_Arquivo);
+			putsxy("Alterações gravadas!",5,11);
+			getch();
+		}
+		else
+		{
+			putsxy("Senha Incorreta!",5,11);
+		}
 	}
 	else
 		putsxy("Usuario nao cadastrado!",5,7);
@@ -534,7 +802,7 @@ void ConsultarCadPessoa(FILE *B_Arquivo)
 		printf("%d",Reg.TotPontos);
 		putsxy("Data de Cadastro: ",5,11);
 		gotoxy(23,11);
-		printf("%d/%d/%d", Reg.Data.Dia, Reg.Data.Mes, Reg.Data.Ano);
+		printf("%02d/%d/%d", Reg.Data.Dia, Reg.Data.Mes, Reg.Data.Ano);
 	}
 	else
 		putsxy("Usuario nao cadastrado!",5,7);
@@ -548,11 +816,13 @@ int BuscaExaustivaPessoa(FILE *B_Arquivo, TpPessoa PBuscar)
 	TpPessoa Reg;
 	rewind(B_Arquivo);
 	
-	fread(&Reg, sizeof(TpPessoa), 1, B_Arquivo);
-	while(!feof(B_Arquivo) && stricmp(Reg.Login, PBuscar.Login) != 0)
+	Reg.Status = 1;
+
 		fread(&Reg, sizeof(TpPessoa), 1, B_Arquivo);
+		while((!feof(B_Arquivo) && stricmp(Reg.Login, PBuscar.Login) != 0) || Reg.Status == 1)
+
 	
-	if(!feof(B_Arquivo) && Reg.Status == 0)
+	if(!feof(B_Arquivo))
 		return ftell(B_Arquivo)-sizeof(TpPessoa);
 	else
 		return -1;
