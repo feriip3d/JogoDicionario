@@ -10,12 +10,6 @@
 #define cor_texto WHITE
 
 // Structs
-struct TpPalavra
-{
-	char Port[30], Ing[30], Sign[100];
-	int Pontuacao, Status;
-};
-
 struct TpData
 {
 	int Dia, Mes, Ano;
@@ -54,6 +48,7 @@ void DeletaLinha(int x, int y);
 int TamanhoArquivo(FILE *PtrArq);
 void strcat_char(char *Destino, char letra);
 int TelaFim(int tipo);
+int Login(TpPessoa &User);
 
 // Funções do menu Usuarios
 void ReescreverArquivoPessoa(FILE *B_Arquivo);
@@ -77,6 +72,8 @@ void ExcluirPalavra(FILE *PtrArq);
 // Jogo da Forca
 void DesenhaForca(TpPessoa Usuario);
 void Enforcar(int tentativa);
+int VerificaSorteio(TpPessoa Usuario, TpDicionario Palavra, int lang);
+void SorteiaPalavra(FILE *PtrArq, TpPessoa Usuario, TpDicionario &Palavra, int &lang);
 
 // Jogos
 void JogoForca(void);
@@ -84,7 +81,7 @@ void JogoForca(void);
 
 int main(void)
 {
-	srand(time(NULL));
+	srand(time(0));
 	FILE *Arquivo;
 	textcolor(cor_texto);
 	textbackground(cor_fundo);
@@ -227,18 +224,15 @@ void JogoForca(void)
 {
 	TpPessoa User;
 	TpDicionario Palavra;
-	char letras_utilizadas[30]="", letra;
+	char letras_utilizadas[30], letra;
 	FILE *PtrArq;
-	int login_status=1, qt_palavras, i, j, sorteada=0, encontradas, tent_rest, l_valida,ok;
+	int login_status, i, j, encontradas, tent_rest, l_valida, ok, lang;
 	
-	//login_status=Login(User);
-	
+	login_status=Login(User);
 	while(login_status == 1)
 	{
 		PtrArq = fopen("dicionario.dat","rb");
-		qt_palavras = TamanhoArquivo(PtrArq)/sizeof(TpDicionario);
-		//SorteiaPalavra(sorteada, qt_palavras);
-		
+		SorteiaPalavra(PtrArq,User,Palavra,lang);
 		
 		clrscr();
 		DesenhaForca(User);
@@ -254,7 +248,7 @@ void JogoForca(void)
 		while(encontradas<strlen(Palavra.port) && tent_rest > 0)
 		{
 			putsxy(letras_utilizadas, 6,7);
-			gotoxy(74,17);
+			gotoxy(75,17);
 			printf("%d",tent_rest);
 			fflush(stdin);
 			letra = toupper(getch());
@@ -298,13 +292,23 @@ void JogoForca(void)
 	getch();
 }
 
-/*void SorteiaPalavra(FILE *PtrArq, int QtdePalavras, TpDicionario Palavra)
+void SorteiaPalavra(FILE *PtrArq, TpPessoa Usuario, TpDicionario &Palavra, int &lang)
 {
-	pos = (rand() % QtdePalavras);
-	lang = (rand() % 2)+1;
-	fread(&Palavra, sizeof(TpPessoa), 1, PtrArq);
-	VerificaSorteio(Usuario,Palavra,lang);
-	while(Palavra.Status == 1 || )
+	int pos, qtdePalavras=TamanhoArquivo(PtrArq)/sizeof(TpDicionario);
+	
+	pos = rand() % qtdePalavras;
+	lang = rand() % 2;
+	fseek(PtrArq, pos*sizeof(TpDicionario), SEEK_SET);
+	fread(&Palavra, sizeof(TpDicionario), 1, PtrArq);
+	
+	while(Palavra.Status == 1 || VerificaSorteio(Usuario,Palavra,lang))
+	{
+		pos = rand() % qtdePalavras;
+		lang = rand() % 2+1;
+		fseek(PtrArq, pos*sizeof(TpDicionario), SEEK_SET);
+		fread(&Palavra, sizeof(TpDicionario), 1, PtrArq);
+	}
+		
 }
 
 int VerificaSorteio(TpPessoa Usuario, TpDicionario Palavra, int lang)
@@ -312,15 +316,32 @@ int VerificaSorteio(TpPessoa Usuario, TpDicionario Palavra, int lang)
 	FILE *B_Arquivo;
 	PalavraSort Sort_Anterior;
 	B_Arquivo = fopen("Sorteados.dat","rb");
+	if(B_Arquivo == NULL)
+	{
+		fclose(B_Arquivo);
+		fopen("Sorteados.dat","wb+");
+	}
 	
 	fread(&Sort_Anterior,sizeof(PalavraSort),1,B_Arquivo);
 	if(lang == 1)
 	{
-		while(!feof(B_Arquivo) && Palavra.Port != Sort_Anterior.Palavra && Usuario.Login != Sort_Anterior.Login)
-		{
-				
-		}
+		while(!feof(B_Arquivo) && !(Palavra.port == Sort_Anterior.Palavra && Usuario.Login == Sort_Anterior.Login))
+			fread(&Sort_Anterior, sizeof(PalavraSort), 1, B_Arquivo);
 	}
+	
+	if(lang == 2)
+	{
+		while(!feof(B_Arquivo) && !(Palavra.ing == Sort_Anterior.Palavra && Usuario.Login == Sort_Anterior.Login))
+			fread(&Sort_Anterior, sizeof(PalavraSort), 1, B_Arquivo);
+	}
+	
+	if(!feof(B_Arquivo))
+	{
+		fclose(B_Arquivo);
+		return 1;
+	}
+	fclose(B_Arquivo);
+	return 0;
 }
 
 /*
@@ -482,9 +503,10 @@ int Login(TpPessoa &User)
 	pos = BuscaExaustivaPessoa(PtrArq, User);
 	if(pos >= 0)
 	{
-		gotoxy(11,7);
+		fseek(PtrArq, pos, SEEK_SET);
+		fread(&User,sizeof(TpPessoa),1,PtrArq);
+		gotoxy(10,7);
 		scanf("%d", &senha);
-		
 		if(senha == User.Senha)
 		{
 			fclose(PtrArq);
