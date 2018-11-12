@@ -4,8 +4,9 @@
 #include <ctype.h>
 #include <String.h>
 #include <Windows.h>
+#include <time.h>
 
-#define cor_fundo BLACK
+#define cor_fundo BLUE
 #define cor_texto WHITE
 
 // Structs
@@ -20,16 +21,16 @@ struct TpData
 	int Dia, Mes, Ano;
 };
 
-/*struct PalavraForca (dat)
+struct PalavraSort
 {
-	Palavra
-	Login
-	Acertou	
-}*/
+	char Palavra[30];
+	char Login[10];
+};
 
 struct TpDicionario
 {
 	char port[30], ing[30], sig[100];
+	int Pontos, Status;
 };
 
 struct TpPessoa
@@ -50,6 +51,9 @@ int Nav(int &pos);
 void BotaoSelecionado(const char *Botao, int Coluna, int Linha, int pos);
 void Executa(FILE *Arquivo);
 void DeletaLinha(int x, int y);
+int TamanhoArquivo(FILE *PtrArq);
+void strcat_char(char *Destino, char letra);
+int TelaFim(int tipo);
 
 // Funções do menu Usuarios
 void ReescreverArquivoPessoa(FILE *B_Arquivo);
@@ -63,11 +67,24 @@ void ExcluirPessoa(FILE *B_Arquivo);
 
 // Funções do menu Dicionario
 void IncluirPalavra(FILE *PtrArq);
+int BuscaPalavra(FILE *PtrArq, TpDicionario PalavraB);
+void AlteraPalavra(FILE *PtrArq);
+void SelecionaAlteraPalavra(int opcao, TpDicionario &Reg);
+void ConsultarPalavra(FILE *PtrArq);
+void RelatorioPalavra(FILE *PtrArq);
+void ExcluirPalavra(FILE *PtrArq);
 
+// Jogo da Forca
+void DesenhaForca(TpPessoa Usuario);
+void Enforcar(int tentativa);
+
+// Jogos
+void JogoForca(void);
 
 
 int main(void)
 {
+	srand(time(NULL));
 	FILE *Arquivo;
 	textcolor(cor_texto);
 	textbackground(cor_fundo);
@@ -83,6 +100,7 @@ int main(void)
 // Dicionario
 void IncluirPalavra(FILE *PtrArq){
 	TpDicionario dicio;
+	int pos;
 	clrscr();
 	PtrArq = fopen("dicionario.dat", "rb+");
 	
@@ -101,93 +119,352 @@ void IncluirPalavra(FILE *PtrArq){
 	DesenharTela(1,1,80,25,"CADASTRAR PALAVRA",0);
 	gotoxy(3,5);printf("Palavra em Portugues: ");
 	gets(dicio.port);
-	while(strcmp(dicio.port, "\0") != 0){
-		do{
-			gotoxy(3,7);printf("Palavra em Ingles:                          ");
-			gotoxy(21,7);gets(dicio.ing);
-		}while(strcmp(dicio.ing, "\0") ==0);
-		do{
-			gotoxy(3,9);printf("Significado:                             ");
-			gotoxy(15,9);gets(dicio.sig);
-		}while(strcmp(dicio.sig, "\0") ==0);
-		fwrite(&dicio, sizeof(TpDicionario), 1, PtrArq);
-		clrscr();
-		DesenharTela(1,1,80,25,"CADASTRAR PALAVRA",0);
-		gotoxy(3,5);printf("Palavra em Portugues: ");
-		gets(dicio.port);
+	pos = BuscaPalavra(PtrArq, dicio);
+	if(pos < 0)
+	{
+		while(strcmp(dicio.port, "\0") != 0){
+			do{
+				gotoxy(3,7);printf("Palavra em Ingles:                          ");
+				gotoxy(22,7);gets(dicio.ing);
+			}while(strcmp(dicio.ing, "\0") ==0);
+			do{
+				gotoxy(3,9);printf("Significado:                             ");
+				gotoxy(16,9);gets(dicio.sig);
+			}while(strcmp(dicio.sig, "\0") ==0);
+			do{
+				gotoxy(3,11);printf("Pontuacao:                             ");
+				gotoxy(14,11);scanf("%d",&dicio.Pontos);
+			}while(dicio.Pontos<= 0);
+			dicio.Status = 0;
+			fwrite(&dicio, sizeof(TpDicionario), 1, PtrArq);
+			clrscr();
+			DesenharTela(1,1,80,25,"CADASTRAR PALAVRA",0);
+			gotoxy(3,5);printf("Palavra em Portugues: ");
+			fflush(stdin);
+			gets(dicio.port);
+		}
+	}
+	else
+	{
+		putsxy("A palavra ja existe!",3,24);
+		getch();
 	}
 	fclose(PtrArq);
 }
 
 // ???
-/*
+
 int BuscaPalavra(FILE *PtrArq, TpDicionario PalavraB){
 	TpDicionario Reg;
-	rewind(B_Arquivo);
+	rewind(PtrArq);
 	
-	Reg.Status = 1;
-	while(Reg.Status == 1 && !feof(B_Arquivo))
-	{
-		fread(&Reg, sizeof(TpPessoa), 1, B_Arquivo);
-		while(!feof(B_Arquivo) && stricmp(Reg.Login, PBuscar.Login) != 0)
-			fread(&Reg, sizeof(TpPessoa), 1, B_Arquivo);
-	}
-	
-	if(!feof(B_Arquivo))
-		return ftell(B_Arquivo)-sizeof(TpPessoa);
+	Reg.Status = 0;
+	fread(&Reg, sizeof(TpDicionario), 1, PtrArq);
+	while((!feof(PtrArq) && stricmp(Reg.port, PalavraB.port) != 0) || Reg.Status == 1)
+		fread(&Reg, sizeof(TpDicionario), 1, PtrArq);
+			
+	if(!feof(PtrArq))
+		return ftell(PtrArq)-sizeof(TpDicionario);
 	else
 		return -1;
 }
-*/
-/*
-void AlteraPalavra(FILE *PtrArq){
-	TpDicionario dicio;
-	int tipo = 0;
-	PtrArq = fopen("TpDicionario", "rb+");
-	clrscr();
-	gotoxy(3,3);printf("1 - Portugues");
-	gotoxy(3,4);printf("2 - Ingles");
-	tipo = getch();
-	if(tipo == 1||tipo == 2){
-		do{
-			gotoxy(3,6);printf("Digite a palavra:                                     ");
-			gotoxy(21,6);gets(palavra);
-		}while(strcmp(palavra, "\0") == 0);
-		pos=busca(PtrArq,palavra, tipo);
-	}else{
-		gotoxy(3, 6);printf("Invalido");
-	}
+
+
+void AlteraPalavra(FILE *PtrArq)
+{
+	int pos, i;
+	TpDicionario Reg;
+	char op;
+	PtrArq = fopen("dicionario.dat","rb+");
 	
-	if(pos != -1){
-		if(tipo == 1){
-			fseek(PtrArq, pos, 0);
-			fread(&dicio, sizeof(TpDicionario),1,PtrArq);
-			fflush(stdin);scanf("%s", &dicio.ing);
-			fseek(PtrArq,pos,0);
-			fwrite(&dicio, sizeof(TpDicionario), 1, PtrArq);
+	clrscr();
+	DesenharTela(1,1,80,25,"ALTERAR PALAVRA",0);
+	
+	putsxy("Digite a palavra a ser alterada (port.): ",3,5);
+	fflush(stdin);
+	getsxy(Reg.port,44,5);
+	
+	pos = BuscaPalavra(PtrArq, Reg);
+	if(pos >= 0)
+	{
+		putsxy("Pressione ENTER para prosseguir ou BACKSPACE para alterar.",3,24);
+		fseek(PtrArq, pos, SEEK_SET);
+		fread(&Reg, sizeof(TpDicionario), 1, PtrArq);
+		putsxy("Portugues: ",5,7);
+		putsxy(Reg.port,16,7);
+		putsxy("Ingles: ",5,9);
+		putsxy(Reg.ing,13,9);
+		putsxy("Significado: ",5,11);
+		putsxy(Reg.sig,18,11);
+		putsxy("Pontuacao: ",5,13);
+		gotoxy(16,13);
+		printf("%d",Reg.Pontos);
+				
+		for(i=7; i<=13; i+=2)
+		{
+			gotoxy(3,i);
+			printf("%c", 16);
+			fflush(stdin);
+			op = getch();
+			if (op == 8)
+				SelecionaAlteraPalavra(i, Reg);
+			putsxy(" ",3,i);
 		}
+		
+		fseek(PtrArq, pos, SEEK_SET);
+		fwrite(&Reg, sizeof(TpDicionario), 1, PtrArq);
+	}
+	else
+	{
+		putsxy("Palavra nao cadastrada!",5,7);
+		getch();
 	}
 	fclose(PtrArq);
 }
-*/
-//
-/*void JogoForca(void)
+
+
+void JogoForca(void)
 {
 	TpPessoa User;
 	TpDicionario Palavra;
+	char letras_utilizadas[30]="", letra;
 	FILE *PtrArq;
-	int login_status, qt_palavras;
+	int login_status=1, qt_palavras, i, j, sorteada=0, encontradas, tent_rest, l_valida,ok;
 	
-	login_status=Login(User);
+	//login_status=Login(User);
 	
-	if(login_status == 1)
+	while(login_status == 1)
 	{
-		PtrArq = fopen("Palavras.dat","rb");
-		qt_palavras = TamanhoArquivo(PtrArq)/sizeof(TpDicio);
+		PtrArq = fopen("dicionario.dat","rb");
+		qt_palavras = TamanhoArquivo(PtrArq)/sizeof(TpDicionario);
+		//SorteiaPalavra(sorteada, qt_palavras);
 		
-		DesenharTela(1,1,80,25,"FORCA",2);
+		
+		clrscr();
+		DesenhaForca(User);
+		fseek(PtrArq, 0, SEEK_SET);
+		fread(&Palavra, sizeof(TpDicionario), 1, PtrArq);
+		for(i=0, j=5; i<strlen(Palavra.port); i++, j+=2)
+			putsxy("_",j,18);
+			
+		putsxy("Significado: ",5,21);
+		putsxy(Palavra.sig,5,22);
+		
+		encontradas=0; tent_rest=6;
+		while(encontradas<strlen(Palavra.port) && tent_rest > 0)
+		{
+			putsxy(letras_utilizadas, 6,7);
+			gotoxy(74,17);
+			printf("%d",tent_rest);
+			fflush(stdin);
+			letra = toupper(getch());
+			
+			for(i=0, l_valida=0; i<strlen(letras_utilizadas); i++)
+				if(letra == letras_utilizadas[i])
+					l_valida=1;
+					
+			if(l_valida == 0)
+			{
+				for(i=0, j=5, ok=0; i<strlen(Palavra.port); i++, j+=2)
+				{
+					if(letra == toupper(Palavra.port[i]))
+					{
+						gotoxy(j,18);
+						printf("%c", letra);
+						encontradas++;
+						ok=1;
+					}
+				}
+				
+				if(ok == 0)
+				{
+					Enforcar(tent_rest);
+					tent_rest--;
+				}
+				strcat_char(letras_utilizadas,letra);
+			}
+		}
+		
+		if(tent_rest == 0)
+			login_status = TelaFim(1);
+		else
+		{
+			login_status = TelaFim(2);
+			//registraPontos(Palavra, User, lang;
+		}
+		
+		fclose(PtrArq);
 	}
-}*/
+	getch();
+}
+
+/*void SorteiaPalavra(FILE *PtrArq, int QtdePalavras, TpDicionario Palavra)
+{
+	pos = (rand() % QtdePalavras);
+	lang = (rand() % 2)+1;
+	fread(&Palavra, sizeof(TpPessoa), 1, PtrArq);
+	VerificaSorteio(Usuario,Palavra,lang);
+	while(Palavra.Status == 1 || )
+}
+
+int VerificaSorteio(TpPessoa Usuario, TpDicionario Palavra, int lang)
+{
+	FILE *B_Arquivo;
+	PalavraSort Sort_Anterior;
+	B_Arquivo = fopen("Sorteados.dat","rb");
+	
+	fread(&Sort_Anterior,sizeof(PalavraSort),1,B_Arquivo);
+	if(lang == 1)
+	{
+		while(!feof(B_Arquivo) && Palavra.Port != Sort_Anterior.Palavra && Usuario.Login != Sort_Anterior.Login)
+		{
+				
+		}
+	}
+}
+
+/*
+void RegistrarPontos(TpDicionario Palavra, TpPessoa Usuario, int lang)
+{
+	FILE *PtrArq;
+	PalavraSort Sorteado;
+	
+	TpPessoa.TotPontos += Palavra.Pontuacao;
+	strcpy(Sorteado.Login,Usuario.Login);
+	if(lang == 1)
+		strcpy(Sorteado.Palavra,Palavra.Port);
+	else
+		strcpy(Sorteado.Palavra,Palavra.Ing);
+		
+	PtrArq = fopen("Pessoa.dat","rb+");
+	fseek(PtrArq,BuscaExaustivaPessoa(PtrArq, Usuario),SEEK_SET);
+	fwrite(&Usuario, sizeof(TpPessoa), 1, PtrArq);
+	fclose(PtrArq);
+	
+	PtrArq = fopen("Sorteados","ab+");
+	fwrite(PtrArq,sizeof(PalavraSort),1,PtrArq);
+	fclose(PtrArq);
+}
+*/
+int TelaFim(int tipo)
+{
+	int continuar;
+	
+	switch(tipo)
+	{
+		case 1:
+			putsxy("\\",68,11);
+			textbackground(RED);
+			putsxy("              ",18,8);
+			putsxy(" VOCE PERDEU! ",18,9);
+			putsxy("              ",18,10);
+			textbackground(cor_fundo);
+			putsxy("Deseja jogar novamente?(s/n)",11,12);
+			switch(toupper(getch()))
+			{
+				case 'S':
+					continuar = 1;
+				case 'N':
+					continuar = 0;
+			}
+			
+			break;
+			
+		case 2:
+			textbackground(GREEN);
+			putsxy("              ",18,8);
+			putsxy(" VOCE GANHOU! ",18,9);
+			putsxy("              ",18,10);
+			textbackground(cor_fundo);
+			putsxy("Deseja continuar?(s/n)",14,12);
+			switch(toupper(getch()))
+			{
+				case 'S':
+					continuar = 1;
+				case 'N':
+					continuar = 0;
+			}
+			break;
+	}
+	
+	return continuar;
+}
+
+void Enforcar(int tentativa)
+{
+	switch(tentativa)
+	{
+		case 6:
+			putsxy("O",67,8);
+			break;
+		case 5:
+			gotoxy(67,9);
+			printf("%c",179);
+			break;
+		case 4:
+			putsxy("/",68,9);
+			break;
+		case 3:
+			putsxy("\\",66,9);
+			break;
+		case 2:
+			gotoxy(67,10);
+			printf("%c", 179);
+		case 1:
+			putsxy("/",66,11);
+			break;
+	}
+}
+
+void strcat_char(char *Destino, char letra)
+{
+	Destino[strlen(Destino)] = letra;
+	Destino[strlen(Destino)+1] = '\0';	
+}
+
+void DesenhaForca(TpPessoa Usuario)
+{
+	int i;
+	DesenharTela(1,1,80,25,"FORCA",2);
+	gotoxy(75,5);
+	printf("%c",187);
+	for(i=6; i<15; i++)
+	{
+		gotoxy(75,i);
+		printf("%c",186);
+	}
+	for(i=78; i>64; i--)
+	{
+		gotoxy(i, 15);
+		printf("%c",205);
+	}
+	for(i=74; i>67; i--)
+	{
+		gotoxy(i,5);
+		printf("%c", 205);
+	}
+	gotoxy(75,15);
+	printf("%c", 202);
+	gotoxy(67,5);
+	printf("%c", 201);
+	for(i=6; i<8; i++)
+	{
+		gotoxy(67,i);
+		printf("|");
+	}
+	
+	putsxy("Tentativas Rest.: ",57,17);
+	putsxy("Pont. da Palavra: ",57,19);
+	putsxy("Sua Pont. Total: ",57,21);
+	putsxy("Usuario: ",5,5);
+	putsxy("Usuario_PH",14,5);
+}
+
+int TamanhoArquivo(FILE *PtrArq)
+{
+	fseek(PtrArq,0,SEEK_END);
+	return ftell(PtrArq);
+}
 
 int Login(TpPessoa &User)
 {
@@ -250,6 +527,24 @@ void Executa(FILE *Arquivo)
 					
 				case 21:
 					IncluirPalavra(Arquivo);
+					break;
+				case 22:
+					AlteraPalavra(Arquivo);
+					break;
+				case 23:
+					ConsultarPalavra(Arquivo);
+					break;
+				case 25:
+					RelatorioPalavra(Arquivo);
+					break;
+				case 27:
+					ExcluirPalavra(Arquivo);
+					break;
+					
+					
+				case 31:
+					JogoForca();
+					break;
 			}
 		}
 		op=Menu();
@@ -477,6 +772,19 @@ void DesenharTela(int CInicial, int LInicial, int CFinal, int LFinal, const char
 		gotoxy((CFinal/3)*2,LFinal);
 		printf("%c", 202);
 	}
+	else if(TJanela == 2)
+	{
+		gotoxy(55,25);
+		printf("%c",202);
+		gotoxy(55,3);
+		printf("%c",203);
+		
+		for(i=4; i<25; i++)
+		{
+			gotoxy(55,i);
+			printf("%c",186);
+		}
+	}
 	putsxy(Titulo,37,2);
 }
 
@@ -555,6 +863,7 @@ void CadastrarPessoa(FILE *B_Arquivo)
 	CadExiste = BuscaExaustivaPessoa(B_Arquivo, RegPessoa);
 	while(strcmp(RegPessoa.Login,"\0") == 0 || CadExiste >= 0)
 	{
+		DeletaLinha(10,5);
 		fflush(stdin);
 		getsxy(RegPessoa.Login,10,5);
 		CadExiste = BuscaExaustivaPessoa(B_Arquivo, RegPessoa);
@@ -564,6 +873,7 @@ void CadastrarPessoa(FILE *B_Arquivo)
 	getsxy(RegPessoa.Nome,9,7);
 	while(strcmp(RegPessoa.Nome,"\0") == 0)
 	{
+		DeletaLinha(9,7);
 		fflush(stdin);
 		getsxy(RegPessoa.Nome,9,7);
 	}
@@ -573,6 +883,7 @@ void CadastrarPessoa(FILE *B_Arquivo)
 	RegPessoa.Senha = atoi(cbuffer);
 	while(RegPessoa.Senha <= 0)
 	{
+		DeletaLinha(10,9);
 		fflush(stdin);
 		getsxy(cbuffer,10,9);
 		RegPessoa.Senha = atoi(cbuffer);
@@ -602,12 +913,12 @@ void ExcluirPessoa(FILE *B_Arquivo)
 	DesenharTela(1,1,80,25,"EXCLUIR CADASTRO",0);
 	
 	putsxy("Digite o login do usuario a ser excluido: ",3,5);
+	fflush(stdin);
 	getsxy(Reg.Login,45,5);
 	
 	pos = BuscaExaustivaPessoa(B_Arquivo, Reg);
-	if(BuscaExaustivaPessoa(B_Arquivo, Reg) >= 0)
+	if(pos >= 0)
 	{
-		rewind(B_Arquivo);
 		fseek(B_Arquivo, pos, SEEK_SET);
 		fread(&Reg, sizeof(TpPessoa),1, B_Arquivo);
 		putsxy("Nome: ",5,7);
@@ -638,6 +949,96 @@ void ExcluirPessoa(FILE *B_Arquivo)
 		putsxy("Usuario nao cadastrado!",5,7);
 	
 	fclose(B_Arquivo);
+}
+
+void ExcluirPalavra(FILE *PtrArq)
+{
+	int pos, i;
+	TpDicionario Reg;
+	PtrArq = fopen("dicionario.dat","rb+");
+	
+	clrscr();
+	DesenharTela(1,1,80,25,"EXCLUIR PALAVRA",0);
+	
+	putsxy("Digite a palavra a ser excluida (port): ",3,5);
+	fflush(stdin);
+	getsxy(Reg.port,43,5);
+	
+	pos = BuscaPalavra(PtrArq, Reg);
+	if(pos >= 0)
+	{
+		fseek(PtrArq,pos,SEEK_SET);
+		fread(&Reg, sizeof(TpDicionario), 1, PtrArq);
+		putsxy("Portugues: ",5,7);
+		putsxy(Reg.port,16,7);
+		putsxy("Ingles: ",5,9);
+		putsxy(Reg.ing,13,9);
+		putsxy("Significado: ",5,11);
+		putsxy(Reg.sig,18,11);
+		putsxy("Pontuacao: ",5,13);
+		gotoxy(16,13);
+		printf("%d",Reg.Pontos);
+		
+		putsxy("Deseja remover essa palavra? (s/n).",3,23);
+		gotoxy(3,24);
+		printf("%c: ", 16);
+		if(tolower(getche()) == 's')
+		{
+			Reg.Status = 1;
+			putsxy("Deletada!",5,13);
+		}
+		else
+			putsxy("Cancelado!",5,13);
+		
+		fseek(PtrArq,pos,SEEK_SET);
+		fwrite(&Reg, sizeof(TpDicionario), 1, PtrArq);
+		getch();
+	}
+	else
+		putsxy("Palavra nao cadastrada!",5,7);
+	
+	fclose(PtrArq);
+}
+
+void RelatorioPalavra(FILE *PtrArq)
+{
+	TpDicionario Reg;
+	int linha=5, i;
+	
+	clrscr();
+	PtrArq = fopen("dicionario.dat","rb");
+	
+	DesenharTela(1,1,80,25,"RELATORIO", 0);
+	putsxy("Portugues",3,4);
+	putsxy("Ingles",23,4);
+	putsxy("Pontos",43,4);
+	putsxy("Significado",57,4);
+	
+	fread(&Reg, sizeof(TpDicionario), 1, PtrArq);
+	while(!feof(PtrArq))
+	{
+		putsxy("Pressione ENTER para continuar.",3,24);
+		if (linha == 23)
+		{
+			getch();
+			for(i=5; i<linha; i++)
+				DeletaLinha(2,i);
+			linha = 5;
+		}
+		
+		if(Reg.Status == 0)
+		{
+			putsxy(Reg.port,3,linha);
+			putsxy(Reg.ing,23,linha);
+			gotoxy(43,linha);
+			printf("%d", Reg.Pontos);
+			putsxy(Reg.sig,57,linha);
+			linha++;
+		}
+		fread(&Reg, sizeof(TpDicionario), 1, PtrArq);
+	}
+	fclose(PtrArq);
+	getch();
 }
 
 void RelatorioPessoa(FILE *B_Arquivo)
@@ -679,12 +1080,13 @@ void RelatorioPessoa(FILE *B_Arquivo)
 		fread(&Reg, sizeof(TpPessoa), 1, B_Arquivo);
 	}
 	
+	fclose(B_Arquivo);
 	getch();
 }
 
 void AlterarCadPessoa(FILE *B_Arquivo)
 {
-	int pos, i, confirmar;
+	int pos, i, confirmar, bksenha;
 	TpPessoa Reg;
 	char senha_bf[50], op;
 	B_Arquivo = fopen("Pessoa.dat","rb+");
@@ -693,18 +1095,19 @@ void AlterarCadPessoa(FILE *B_Arquivo)
 	DesenharTela(1,1,80,25,"ALTERAR CADASTRO",0);
 	
 	putsxy("Digite o login do usuario a ser alterado: ",3,5);
+	fflush(stdin);
 	getsxy(Reg.Login,45,5);
 	
 	pos = BuscaExaustivaPessoa(B_Arquivo, Reg);
-	if(BuscaExaustivaPessoa(B_Arquivo, Reg) >= 0)
+	if(pos >= 0)
 	{
 		putsxy("Pressione ENTER para prosseguir ou BACKSPACE para alterar.",3,24);
-		rewind(B_Arquivo);
 		fseek(B_Arquivo, pos, SEEK_SET);
 		fread(&Reg, sizeof(TpPessoa),1, B_Arquivo);
 		putsxy("Nome: ",5,7);
 		putsxy(Reg.Nome,11,7);
 		putsxy("Senha: ",5,9);
+		bksenha = Reg.Senha;
 		sprintf(senha_bf,"%d",Reg.Senha);
 		for(i=0; i<strlen(senha_bf); i++)
 			putsxy("*",i+12,9);
@@ -724,7 +1127,7 @@ void AlterarCadPessoa(FILE *B_Arquivo)
 		scanf("%d",&confirmar);
 		
 		DeletaLinha(5,11);
-		if(Reg.Senha == confirmar)
+		if(bksenha == confirmar)
 		{
 			fseek(B_Arquivo,pos,SEEK_SET);
 			fwrite(&Reg, sizeof(TpPessoa), 1, B_Arquivo);
@@ -734,10 +1137,14 @@ void AlterarCadPessoa(FILE *B_Arquivo)
 		else
 		{
 			putsxy("Senha Incorreta!",5,11);
+			getch();
 		}
 	}
 	else
+	{
 		putsxy("Usuario nao cadastrado!",5,7);
+		getch();
+	}
 	fclose(B_Arquivo);
 }
 
@@ -762,7 +1169,7 @@ void SelecionaAlteraPessoa(int opcao, TpPessoa &Reg)
 		}
 	}
 	
-	if(opcao == 9)
+	else if(opcao == 9)
 	{
 		char cbuffer[50];
 		DeletaLinha(12,9);
@@ -779,6 +1186,40 @@ void SelecionaAlteraPessoa(int opcao, TpPessoa &Reg)
 	}
 }
 
+void ConsultarPalavra(FILE *PtrArq)
+{
+	int pos;
+	TpDicionario Reg;
+	PtrArq = fopen("dicionario.dat","rb");
+	
+	clrscr();
+	DesenharTela(1,1,80,25,"CONSULTAR PALAVRA",0);
+	
+	putsxy("Digite a palavra a ser consultada (port.): ",3,5);
+	fflush(stdin);
+	getsxy(Reg.port,46,5);
+	pos = BuscaPalavra(PtrArq, Reg);
+	if(pos >= 0)
+	{
+		fseek(PtrArq,pos,SEEK_SET);
+		fread(&Reg, sizeof(TpDicionario), 1, PtrArq);
+		putsxy("Portugues: ",5,7);
+		putsxy(Reg.port,16,7);
+		putsxy("Ingles: ",5,9);
+		putsxy(Reg.ing,13,9);
+		putsxy("Significado: ",5,11);
+		putsxy(Reg.sig,18,11);
+		putsxy("Pontuacao: ",5,13);
+		gotoxy(16,13);
+		printf("%d",Reg.Pontos);
+	}
+	else
+		putsxy("Palavra nao cadastrada!",5,7);
+		
+	getch();
+	fclose(PtrArq);
+}
+
 void ConsultarCadPessoa(FILE *B_Arquivo)
 {
 	int pos;
@@ -789,6 +1230,7 @@ void ConsultarCadPessoa(FILE *B_Arquivo)
 	DesenharTela(1,1,80,25,"CONSULTAR CADASTRO",0);
 	
 	putsxy("Digite o login do usuario a ser consultado: ",3,5);
+	fflush(stdin);
 	getsxy(Reg.Login,47,5);
 	pos = BuscaExaustivaPessoa(B_Arquivo, Reg);
 	if(pos >= 0)
@@ -811,15 +1253,69 @@ void ConsultarCadPessoa(FILE *B_Arquivo)
 	fclose(B_Arquivo);
 }
 
+void SelecionaAlteraPalavra(int opcao, TpDicionario &Reg)
+{
+	if(opcao == 7)
+	{
+		fflush(stdin);
+		DeletaLinha(16,7);
+		getsxy(Reg.port,16,7);
+		while(strcmp(Reg.port,"\0") == 0)
+		{
+			DeletaLinha(16,7);
+			fflush(stdin);
+			getsxy(Reg.port,16,7);
+		}
+	}
+	else if(opcao == 9)
+	{
+		fflush(stdin);
+		DeletaLinha(13,9);
+		getsxy(Reg.ing,13,9);
+		while(strcmp(Reg.ing,"\0") == 0)
+		{
+			DeletaLinha(13,9);
+			fflush(stdin);
+			getsxy(Reg.ing,13,9);
+		}
+	}
+	else if(opcao == 11)
+	{
+		fflush(stdin);
+		DeletaLinha(18,11);
+		getsxy(Reg.sig,18,11);
+		while(strcmp(Reg.sig,"\0") == 0)
+		{
+			DeletaLinha(18,11);
+			fflush(stdin);
+			getsxy(Reg.sig,18,11);
+		}
+	}
+	
+	else if(opcao == 13)
+	{
+		DeletaLinha(16,13);
+		scanf("%d",&Reg.Pontos);
+		while(Reg.Pontos <= 0)
+		{
+			DeletaLinha(16,13);
+			scanf("%d",&Reg.Pontos);
+		}
+	}
+	
+
+}
+
 int BuscaExaustivaPessoa(FILE *B_Arquivo, TpPessoa PBuscar)
 {
 	TpPessoa Reg;
 	rewind(B_Arquivo);
 	
-	Reg.Status = 1;
+	Reg.Status=0;
 
-		fread(&Reg, sizeof(TpPessoa), 1, B_Arquivo);
-		while((!feof(B_Arquivo) && stricmp(Reg.Login, PBuscar.Login) != 0) || Reg.Status == 1)
+	fread(&Reg, sizeof(TpPessoa), 1, B_Arquivo);
+	while((!feof(B_Arquivo) && stricmp(Reg.Login, PBuscar.Login) != 0) || Reg.Status == 1)
+		fread(&Reg,sizeof(TpPessoa),1,B_Arquivo);
 
 	
 	if(!feof(B_Arquivo))
