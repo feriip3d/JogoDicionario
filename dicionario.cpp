@@ -472,27 +472,46 @@ void traduzFrase(FILE *PtrArq){
 	PtrArq =fopen("dicionario.dat", "rb");
 	clrscr();
 	DesenharTela(1,1,80,25, "Tradutor Palavra", 0);
-	gotoxy(3,5);printf("Frase: ");fflush(stdin);
-	gets(frase);
+	gotoxy(3,5);printf("Frase: ");
+	fflush(stdin);gets(frase);
 	local = strlen(frase);
 	for(i =0; i<local; i++){
 		if(frase[i] != ' '){
 			palavra[tam] = frase[i];
+			palavra[tam+1] = '\0';
 			tam++;
-		}else{
-			pos =BuscaPraFrase(PtrArq, palavra);
-			if(pos == -1){
-				strcat(concat, palavra);
-			}else{
-				fseek(PtrArq, pos, 0);
-				fread(&dicio, sizeof(TpDicionario), 1, PtrArq);
-				strcat(concat, dicio.ing);
+			gotoxy(3,7);puts(palavra);
+		}
+		if(frase[i] == ' '){
+			if(tam >0){
+				pos =BuscaPraFrase(PtrArq, palavra);
+				if(pos == -1){
+					strcat(concat, palavra);
+				}else{
+					fseek(PtrArq, pos, 0);
+					fread(&dicio, sizeof(TpDicionario), 1, PtrArq);
+					strcat(concat, dicio.ing);
+				}
+				strcat(concat, " ");
+				tam=0;
+				palavra[0] = '\0';
 			}
-			strcat(concat, " ");
-			tam =0;
 		}
 	}
-	gotoxy(3,7);puts(concat);
+	if(tam > 0){
+		pos =BuscaPraFrase(PtrArq, palavra);
+		if(pos == -1){
+			strcat(concat, palavra);
+		}else{
+			fseek(PtrArq, pos, 0);
+			fread(&dicio, sizeof(TpDicionario), 1, PtrArq);
+			strcat(concat, dicio.ing);
+		}
+		strcat(concat, " ");
+		tam=0;
+		palavra[0] = '\0';
+	}
+	putsxy(concat,3,7);gotoxy(3,7);printf("%c", 16);gotoxy(3,8);
 	getch();
 	fclose(PtrArq);
 }
