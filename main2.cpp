@@ -60,9 +60,8 @@ void ConsultarCadPessoa(FILE *B_Arquivo);
 void SelecionaAlteraPessoa(int opcao, TpPessoa &Reg);
 void RelatorioPessoa(FILE *B_Arquivo);
 void ExcluirPessoa(FILE *B_Arquivo);
-void SelecaoDiretaPessoa(FILE *PtrArq);
+void OrdSelecaoDiretaPessoa(FILE *PtrArq);
 int PosicaoMaiorPessoa(FILE *PtrArq, int qtde);
-void OrganizaBolhaPessoa(FILE *PtrArq);
 
 // Funções do menu Dicionario
 void IncluirPalavra(FILE *PtrArq);
@@ -72,12 +71,15 @@ void SelecionaAlteraPalavra(int opcao, TpDicionario &Reg);
 void ConsultarPalavra(FILE *PtrArq);
 void RelatorioPalavra(FILE *PtrArq);
 void ExcluirPalavra(FILE *PtrArq);
+void OrganizaBolhaPalavras(FILE *PtrArq);
 
 // Jogo da Forca
 void DesenhaForca(TpPessoa Usuario);
 void Enforcar(int tentativa);
 int VerificaSorteio(TpPessoa Usuario, TpDicionario Palavra, int lang);
 void SorteiaPalavra(FILE *PtrArq, TpPessoa Usuario, TpDicionario &Palavra, int &lang);
+void OrganizaBolhaRK(FILE *PtrArq);
+void ExibeRanking(FILE *PtrArq);
 
 // Jogos
 void JogoForca(void);
@@ -98,7 +100,7 @@ int main(void)
 	return 0;
 }
 
-void SelecaoDiretaPessoa(FILE *PtrArq)
+void OrdSelecaoDiretaPessoa(FILE *PtrArq)
 {
 	PtrArq = fopen("Pessoa.dat","rb+");	
 	
@@ -143,31 +145,61 @@ int PosicaoMaiorPessoa(FILE *PtrArq, int qtde)
  	return PosMaior;
 }
 
-void OrganizaBolhaPessoa(FILE *PtrArq)
+void OrganizaBolhaPalavras(FILE *PtrArq)
 {
-	PtrArq = fopen("Pessoa.dat","rb+");
+	PtrArq = fopen("dicionario.dat","rb+");
 	
-	int pos, qtde = TamanhoArquivo(PtrArq)/sizeof(TpPessoa);
-	TpPessoa a, b;
+	int pos, qtde = TamanhoArquivo(PtrArq)/sizeof(TpDicionario);
+	TpDicionario a, b;
 	while (qtde>0)
 	{
 		for (pos=0; pos<qtde-1; pos++)
 		{
-			fseek(PtrArq,pos*sizeof(TpPessoa),SEEK_SET);
-			fread(&a,sizeof(TpPessoa),1,PtrArq);
-			fseek(PtrArq,(pos+1)*sizeof(TpPessoa),SEEK_SET);
-			fread(&b,sizeof(TpPessoa),1,PtrArq);
-			if (strcmp(a.Login,b.Login) > 0)
+			fseek(PtrArq,pos*sizeof(TpDicionario),SEEK_SET);
+			fread(&a,sizeof(TpDicionario),1,PtrArq);
+			fseek(PtrArq,(pos+1)*sizeof(TpDicionario),SEEK_SET);
+			fread(&b,sizeof(TpDicionario),1,PtrArq);
+			if (stricmp(a.port,b.port) > 0)
  			{	
- 				fseek(PtrArq,pos*sizeof(TpPessoa),SEEK_SET);
- 				fwrite(&a,sizeof(TpPessoa),1,PtrArq);
- 				fseek(PtrArq,(pos+1)*sizeof(TpPessoa),SEEK_SET);
- 				fwrite(&b,sizeof(TpPessoa),1,PtrArq);
+ 				fseek(PtrArq,pos*sizeof(TpDicionario),SEEK_SET);
+ 				fwrite(&b,sizeof(TpDicionario),1,PtrArq);
+ 				fseek(PtrArq,(pos+1)*sizeof(TpDicionario),SEEK_SET);
+ 				fwrite(&a,sizeof(TpDicionario),1,PtrArq);
  			}
  		}
  		qtde--;
 	}
 	fclose(PtrArq);
+}
+
+void OrganizaBolhaRK(FILE *PtrArq)
+{
+	PtrArq = fopen("Pessoa.dat","rb+");
+	
+	if(PtrArq != NULL)
+	{
+		int pos, qtde = TamanhoArquivo(PtrArq)/sizeof(TpPessoa);
+		TpPessoa a, b;
+		while (qtde>0)
+		{
+			for (pos=0; pos<qtde-1; pos++)
+			{
+				fseek(PtrArq,pos*sizeof(TpPessoa),SEEK_SET);
+				fread(&a,sizeof(TpPessoa),1,PtrArq);
+				fseek(PtrArq,(pos+1)*sizeof(TpPessoa),SEEK_SET);
+				fread(&b,sizeof(TpPessoa),1,PtrArq);
+				if (a.TotPontos < b.TotPontos)
+	 			{	
+	 				fseek(PtrArq,pos*sizeof(TpPessoa),SEEK_SET);
+	 				fwrite(&b,sizeof(TpPessoa),1,PtrArq);
+	 				fseek(PtrArq,(pos+1)*sizeof(TpPessoa),SEEK_SET);
+	 				fwrite(&a,sizeof(TpPessoa),1,PtrArq);
+	 			}
+	 		}
+	 		qtde--;
+		}
+		fclose(PtrArq);
+	}
 }
 
 // Dicionario
@@ -346,8 +378,8 @@ void JogoForca(void)
 						printf("%c", letra);
 						encontradas++;
 						Beep(1300,50);
-						Beep(900,100);
-						Sleep(150);
+						Beep(900,50);
+						Sleep(100);
 						
 						ok=1;
 					}
@@ -376,27 +408,6 @@ void JogoForca(void)
 	}
 	fclose(PtrArq);
 }
-/*
-void Tradutor(FILE *PtrArq)
-{
-	char frase[400], buffer[30];
-	
-	putsxy("Digite a frase: ",3,5);
-	gets(frase);
-	
-	for(i=0; i<strlen(frase); i++)
-	{
-		if(frase[i] == ' ')
-			Traduz(buffer);
-		else
-			strcat_char(buffer,frase[i]);
-	}
-}
-*/
-void Traduz(char *buffer)
-{
-	
-}
 
 void SorteiaPalavra(FILE *PtrArq, TpPessoa Usuario, TpDicionario &Palavra, int &lang)
 {
@@ -421,11 +432,14 @@ int VerificaSorteio(TpPessoa Usuario, TpDicionario Palavra, int lang)
 {
 	FILE *B_Arquivo;
 	PalavraSort Sort_Anterior;
-	B_Arquivo = fopen("Sorteados.dat","rb");
+	char user[50]="Sorteados_";
+	strcat(user, Usuario.Login);
+	strcat(user, ".dat");
+	B_Arquivo = fopen(user,"rb");
 	if(B_Arquivo == NULL)
 	{
 		fclose(B_Arquivo);
-		fopen("Sorteados.dat","wb+");
+		fopen(user,"wb+");
 	}
 	
 	fread(&Sort_Anterior,sizeof(PalavraSort),1,B_Arquivo);
@@ -455,22 +469,61 @@ void RegistrarPontos(TpDicionario Palavra, TpPessoa &Usuario, int lang)
 {
 	FILE *PtrArq;
 	PalavraSort Sorteado;
+	char NomeArq[50] = "Sorteados_";
 	
+	strcat(NomeArq,Usuario.Login);
+	strcat(NomeArq,".dat");
 	Usuario.TotPontos += Palavra.Pontos;
 	strcpy(Sorteado.Login,Usuario.Login);
 	if(lang == 1)
 		strcpy(Sorteado.Palavra,Palavra.port);
 	else
 		strcpy(Sorteado.Palavra,Palavra.ing);
-		
+	
 	PtrArq = fopen("Pessoa.dat","rb+");
 	fseek(PtrArq,BuscaExaustivaPessoa(PtrArq, Usuario),SEEK_SET);
 	fwrite(&Usuario, sizeof(TpPessoa), 1, PtrArq);
 	fclose(PtrArq);
 	
-	PtrArq = fopen("Sorteados","ab+");
-	fwrite(PtrArq,sizeof(PalavraSort),1,PtrArq);
+	PtrArq = fopen(NomeArq,"ab+");
+	fwrite(&Sorteado,sizeof(PalavraSort),1,PtrArq);
 	fclose(PtrArq);
+}
+
+void ExibeRanking(FILE *PtrArq)
+{
+	OrganizaBolhaRK(PtrArq);
+	PtrArq = fopen("Pessoa.dat","rb");
+	TpPessoa Reg;
+	int linha=5, i;
+	
+	clrscr();
+	DesenharTela(1,1,80,25,"RANKING", 0);
+	putsxy("Login",3,4);
+	putsxy("Pontos",53,4);
+	
+	fread(&Reg,sizeof(TpPessoa),1,PtrArq);
+	while(!feof(PtrArq))
+	{
+		putsxy("Pressione ENTER para continuar.",3,24);
+		if (linha == 23)
+		{
+			getch();
+			for(i=5; i<linha; i++)
+				DeletaLinha(2,i);
+			linha = 5;
+		}
+		
+		if(Reg.Status == 0)
+		{
+			putsxy(Reg.Login,3,linha);
+			gotoxy(53,linha);
+			printf("%d", Reg.TotPontos);
+			linha++;
+		}
+		fread(&Reg,sizeof(TpPessoa),1,PtrArq);
+	}
+	getch();
 }
 
 int TelaFim(int tipo)
@@ -515,6 +568,7 @@ int TelaFim(int tipo)
 					continuar = 0;
 					break;
 			}
+			
 			break;
 	}
 	
@@ -765,16 +819,6 @@ int Login(TpPessoa &User)
 	return -1;
 }
 
-void BubbleSort(FILE *PtrArq, int tipo)
-{
-	int i, qtde;
-	TpPessoa PAux;
-	PtrArq = fopen("Pessoa.dat","rb+");
-	qtde=TamanhoArquivo(PtrArq);
-	
-    
-}
-
 // Executa uma ação de acordo com o valor retornado pelo Menu
 void Executa(FILE *Arquivo)
 {
@@ -793,6 +837,9 @@ void Executa(FILE *Arquivo)
 				case 13:
 					ConsultarCadPessoa(Arquivo);
 					break;
+				case 14:
+					OrdSelecaoDiretaPessoa(Arquivo);
+					break;
 				case 15:
 					RelatorioPessoa(Arquivo);
 					break;
@@ -809,6 +856,9 @@ void Executa(FILE *Arquivo)
 				case 23:
 					ConsultarPalavra(Arquivo);
 					break;
+				case 24:
+					OrganizaBolhaPalavras(Arquivo);
+					break;
 				case 25:
 					RelatorioPalavra(Arquivo);
 					break;
@@ -819,9 +869,11 @@ void Executa(FILE *Arquivo)
 					ExcluirPalavra(Arquivo);
 					break;
 					
-					
 				case 31:
 					JogoForca();
+					break;
+				case 32:
+					ExibeRanking(Arquivo);
 					break;
 			}
 		}
@@ -863,7 +915,7 @@ int Menu(void)
 				BotaoSelecionado("CONSULTAR",9,10,pos);
 				break;
 			case 14:
-				BotaoSelecionado("ORDENAR(?)",9,11,pos);
+				BotaoSelecionado("ORDENAR",9,11,pos);
 				break;
 			case 15:
 				BotaoSelecionado("RELATORIO",9,12,pos);
@@ -883,7 +935,7 @@ int Menu(void)
 				BotaoSelecionado("CONSULTAR",34,10,pos);
 				break;
 			case 24:
-				BotaoSelecionado("ORDENAR(?)",34,11,pos);
+				BotaoSelecionado("ORDENAR",34,11,pos);
 				break;
 			case 25:
 				BotaoSelecionado("RELATORIO",34,12,pos);
@@ -1073,7 +1125,7 @@ void ExibeMenu(void)
 	putsxy("Cadastrar",9,8);
 	putsxy("Alterar",9,9);
 	putsxy("Consultar",9,10);
-	putsxy("Ordenar(?)",9,11);
+	putsxy("Ordenar",9,11);
 	putsxy("Relatorio",9,12);
 	putsxy("Excluir",9,13);
 	
@@ -1082,7 +1134,7 @@ void ExibeMenu(void)
 	putsxy("Cadastrar",34,8);
 	putsxy("Alterar",34,9);
 	putsxy("Consultar",34,10);
-	putsxy("Ordenar(?)",34,11);
+	putsxy("Ordenar",34,11);
 	putsxy("Relatorio",34,12);
 	putsxy("Tradutor",34,13);
 	putsxy("Excluir",34,14);
