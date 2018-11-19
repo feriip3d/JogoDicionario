@@ -553,6 +553,137 @@ void strcat_char(char *Destino, char letra)
 	Destino[strlen(Destino)] = letra;	
 }
 
+int BuscaPraFrase(FILE *PtrArq, char frase[400]){
+	TpDicionario Reg;
+	rewind(PtrArq);
+	
+	Reg.Status = 0;
+	fread(&Reg, sizeof(TpDicionario), 1, PtrArq);
+	while((!feof(PtrArq) && stricmp(Reg.port, frase) != 0))
+		fread(&Reg, sizeof(TpDicionario), 1, PtrArq);
+			
+	if(!feof(PtrArq))
+		return ftell(PtrArq)-sizeof(TpDicionario);
+	else
+		return -1;
+}
+
+void traduzFrase(FILE *PtrArq){
+	TpDicionario dicio;
+	char frase[400], palavra[400], concat[400];
+	int tam = 0, pos, i, local;
+	PtrArq =fopen("dicionario.dat", "rb");
+	clrscr();
+	DesenharTela(1,1,80,25, "Tradutor Palavra", 0);
+	gotoxy(3,5);printf("Frase: ");
+	fflush(stdin);gets(frase);
+	local = strlen(frase);
+	for(i =0; i<local; i++){
+		if(frase[i] != ' '){
+			palavra[tam] = frase[i];
+			palavra[tam+1] = '\0';
+			tam++;
+			gotoxy(3,7);puts(palavra);
+		}
+		if(frase[i] == ' '){
+			if(tam >0){
+				pos =BuscaPraFrase(PtrArq, palavra);
+				if(pos == -1){
+					strcat(concat, palavra);
+				}else{
+					fseek(PtrArq, pos, 0);
+					fread(&dicio, sizeof(TpDicionario), 1, PtrArq);
+					strcat(concat, dicio.ing);
+				}
+				strcat(concat, " ");
+				tam=0;
+				palavra[0] = '\0';
+			}
+		}
+	}
+	if(tam > 0){
+		pos =BuscaPraFrase(PtrArq, palavra);
+		if(pos == -1){
+			strcat(concat, palavra);
+		}else{
+			fseek(PtrArq, pos, 0);
+			fread(&dicio, sizeof(TpDicionario), 1, PtrArq);
+			strcat(concat, dicio.ing);
+		}
+		strcat(concat, " ");
+		tam=0;
+		palavra[0] = '\0';
+	}
+	putsxy(concat,3,7);gotoxy(3,7);printf("%c", 16);gotoxy(3,8);
+	getch();
+	fclose(PtrArq);
+}
+
+void traduzPalavra(FILE *PtrArq){
+	TpDicionario r;
+	char p[20];
+	clrscr();
+	DesenharTela(1,1,80,25, "Tradutor Palavra", 0);
+	gotoxy(3,5);printf("Palavra: ");
+	gets(p);
+	
+	fread(&r, sizeof(TpDicionario), 1, PtrArq);
+	while(!feof(PtrArq)){
+		if(stricmp(r.port, p) == 0){
+			gotoxy(3,6);printf("Traducao: %s", r.ing);
+			gotoxy(3,7);printf("Significado: %s", r.sig);
+		}
+		fread(&r, sizeof(TpDicionario), 1, PtrArq);
+	}
+	getch();
+}
+
+int escolheTradutor(int op, int escolha){
+
+	putsxy("Palavra",4,5);
+	putsxy("Frase", 4,6);
+	
+	if(op == 80){
+		escolha = escolha + 10;
+	}
+	if(op ==  72){
+		escolha = escolha -10;
+	}
+	if(escolha == 0){
+		escolha = 20;
+	}
+	if(escolha == 30){
+		escolha =10;
+	}
+	if(escolha == 10){
+		gotoxy(3,5);printf("%c", 16);
+	}
+	if(escolha == 20){
+		gotoxy(3,6);printf("%c", 16);
+	}
+return escolha;
+}
+
+void traduz(FILE *PtrArq){
+	int op, escolha = 10;
+	clrscr();
+	DesenharTela(1,1,80,25, "Tradutor", 0);
+	PtrArq = fopen("dicionario.dat", "rb");
+	do{
+		escolha = escolheTradutor(op, escolha);
+		op = getch();
+		putsxy(" ", 3,5);
+		putsxy(" ", 3,6);
+	}while(op != 13);
+	if(escolha == 10){
+		traduzPalavra(PtrArq);
+	}
+	if(escolha == 20){
+		traduzFrase(PtrArq);
+	}
+	fclose(PtrArq);
+}
+
 void DesenhaForca(TpPessoa Usuario)
 {
 	int i;
@@ -680,6 +811,9 @@ void Executa(FILE *Arquivo)
 					break;
 				case 25:
 					RelatorioPalavra(Arquivo);
+					break;
+				case 26:
+					traduz(Arquivo);
 					break;
 				case 27:
 					ExcluirPalavra(Arquivo);
