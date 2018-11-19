@@ -570,7 +570,7 @@ int BuscaPraFrase(FILE *PtrArq, char frase[400]){
 
 void traduzFrase(FILE *PtrArq){
 	TpDicionario dicio;
-	char frase[400], palavra[400], concat[400];
+	char frase[400], palavra[400], concat[400]="";
 	int tam = 0, pos, i, local;
 	PtrArq =fopen("dicionario.dat", "rb");
 	clrscr();
@@ -583,7 +583,6 @@ void traduzFrase(FILE *PtrArq){
 			palavra[tam] = frase[i];
 			palavra[tam+1] = '\0';
 			tam++;
-			gotoxy(3,7);puts(palavra);
 		}
 		if(frase[i] == ' '){
 			if(tam >0){
@@ -614,7 +613,8 @@ void traduzFrase(FILE *PtrArq){
 		tam=0;
 		palavra[0] = '\0';
 	}
-	putsxy(concat,3,7);gotoxy(3,7);printf("%c", 16);gotoxy(3,8);
+	gotoxy(3,7);printf("Traducao: ");putsxy(concat,14,7);
+	fflush(stdin);
 	getch();
 	fclose(PtrArq);
 }
