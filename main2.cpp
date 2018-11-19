@@ -49,6 +49,7 @@ int TamanhoArquivo(FILE *PtrArq);
 void strcat_char(char *Destino, char letra);
 int TelaFim(int tipo);
 int Login(TpPessoa &User);
+void RegistrarPontos(TpDicionario Palavra, TpPessoa &Usuario, int lang);
 
 // Funções do menu Usuarios
 void ReescreverArquivoPessoa(FILE *B_Arquivo);
@@ -59,6 +60,9 @@ void ConsultarCadPessoa(FILE *B_Arquivo);
 void SelecionaAlteraPessoa(int opcao, TpPessoa &Reg);
 void RelatorioPessoa(FILE *B_Arquivo);
 void ExcluirPessoa(FILE *B_Arquivo);
+void SelecaoDiretaPessoa(FILE *PtrArq);
+int PosicaoMaiorPessoa(FILE *PtrArq, int qtde);
+void OrganizaBolhaPessoa(FILE *PtrArq);
 
 // Funções do menu Dicionario
 void IncluirPalavra(FILE *PtrArq);
@@ -92,6 +96,78 @@ int main(void)
 	getch();
 	
 	return 0;
+}
+
+void SelecaoDiretaPessoa(FILE *PtrArq)
+{
+	PtrArq = fopen("Pessoa.dat","rb+");	
+	
+ 	int PosMaior, qtde=TamanhoArquivo(PtrArq)/sizeof(TpPessoa);
+ 	TpPessoa Maior, aux;
+ 	while (qtde > 0)
+ 	{
+		PosMaior = PosicaoMaiorPessoa(PtrArq, qtde);
+		if (PosMaior < qtde-1)
+		{
+			fseek(PtrArq,PosMaior*sizeof(TpPessoa),SEEK_SET);
+ 			fread(&Maior,sizeof(TpPessoa),1,PtrArq);
+ 			fseek(PtrArq,(qtde-1)*sizeof(TpPessoa),SEEK_SET);
+ 			fread(&aux,sizeof(TpPessoa),1,PtrArq);
+ 			
+ 			fseek(PtrArq,PosMaior*sizeof(TpPessoa),SEEK_SET);
+ 			fwrite(&aux,sizeof(TpPessoa),1,PtrArq);
+ 			fseek(PtrArq,(qtde-1)*sizeof(TpPessoa),SEEK_SET);
+ 			fwrite(&Maior,sizeof(TpPessoa),1,PtrArq);
+		}
+		qtde--;
+ 	}
+}
+
+int PosicaoMaiorPessoa(FILE *PtrArq, int qtde)
+{
+ 	int PosMaior, i;
+ 	TpPessoa Maior, BPos;
+ 	rewind(PtrArq);
+ 	fread(&Maior,sizeof(TpPessoa),1,PtrArq);
+	PosMaior = 0;
+	for (i=1; i<qtde; i++)
+	{
+		fseek(PtrArq,i*sizeof(TpPessoa),SEEK_SET);
+		fread(&BPos, sizeof(TpPessoa),1,PtrArq);
+		if (strcmp(Maior.Login,BPos.Login) < 0)
+		{
+ 			Maior = BPos;
+ 			PosMaior = i;
+		}
+	}
+ 	return PosMaior;
+}
+
+void OrganizaBolhaPessoa(FILE *PtrArq)
+{
+	PtrArq = fopen("Pessoa.dat","rb+");
+	
+	int pos, qtde = TamanhoArquivo(PtrArq)/sizeof(TpPessoa);
+	TpPessoa a, b;
+	while (qtde>0)
+	{
+		for (pos=0; pos<qtde-1; pos++)
+		{
+			fseek(PtrArq,pos*sizeof(TpPessoa),SEEK_SET);
+			fread(&a,sizeof(TpPessoa),1,PtrArq);
+			fseek(PtrArq,(pos+1)*sizeof(TpPessoa),SEEK_SET);
+			fread(&b,sizeof(TpPessoa),1,PtrArq);
+			if (strcmp(a.Login,b.Login) > 0)
+ 			{	
+ 				fseek(PtrArq,pos*sizeof(TpPessoa),SEEK_SET);
+ 				fwrite(&a,sizeof(TpPessoa),1,PtrArq);
+ 				fseek(PtrArq,(pos+1)*sizeof(TpPessoa),SEEK_SET);
+ 				fwrite(&b,sizeof(TpPessoa),1,PtrArq);
+ 			}
+ 		}
+ 		qtde--;
+	}
+	fclose(PtrArq);
 }
 
 // Dicionario
@@ -149,7 +225,6 @@ void IncluirPalavra(FILE *PtrArq){
 	fclose(PtrArq);
 }
 
-// ???
 
 int BuscaPalavra(FILE *PtrArq, TpDicionario PalavraB){
 	TpDicionario Reg;
@@ -229,15 +304,13 @@ void JogoForca(void)
 	int login_status, i, j, encontradas, tent_rest, l_valida, ok, lang;
 	
 	login_status=Login(User);
+	PtrArq = fopen("dicionario.dat","rb");
 	while(login_status == 1)
 	{
-		PtrArq = fopen("dicionario.dat","rb");
 		SorteiaPalavra(PtrArq,User,Palavra,lang);
 		
 		clrscr();
 		DesenhaForca(User);
-		fseek(PtrArq, 0, SEEK_SET);
-		fread(&Palavra, sizeof(TpDicionario), 1, PtrArq);
 		for(i=0, j=5; i<strlen(Palavra.port); i++, j+=2)
 			putsxy("_",j,18);
 			
@@ -248,8 +321,14 @@ void JogoForca(void)
 		while(encontradas<strlen(Palavra.port) && tent_rest > 0)
 		{
 			putsxy(letras_utilizadas, 6,7);
+			
 			gotoxy(75,17);
 			printf("%d",tent_rest);
+			gotoxy(75,19);
+			printf("%d",Palavra.Pontos);
+			gotoxy(74,21);
+			printf("%d",User.TotPontos);
+			
 			fflush(stdin);
 			letra = toupper(getch());
 			
@@ -266,12 +345,19 @@ void JogoForca(void)
 						gotoxy(j,18);
 						printf("%c", letra);
 						encontradas++;
+						Beep(1300,50);
+						Beep(900,100);
+						Sleep(150);
+						
 						ok=1;
 					}
 				}
 				
 				if(ok == 0)
 				{
+					Beep(800,50);
+					Beep(700,100);
+					
 					Enforcar(tent_rest);
 					tent_rest--;
 				}
@@ -284,12 +370,32 @@ void JogoForca(void)
 		else
 		{
 			login_status = TelaFim(2);
-			//registraPontos(Palavra, User, lang;
+			RegistrarPontos(Palavra, User, lang);
 		}
-		
-		fclose(PtrArq);
+		letras_utilizadas[0]='\0';
 	}
-	getch();
+	fclose(PtrArq);
+}
+/*
+void Tradutor(FILE *PtrArq)
+{
+	char frase[400], buffer[30];
+	
+	putsxy("Digite a frase: ",3,5);
+	gets(frase);
+	
+	for(i=0; i<strlen(frase); i++)
+	{
+		if(frase[i] == ' ')
+			Traduz(buffer);
+		else
+			strcat_char(buffer,frase[i]);
+	}
+}
+*/
+void Traduz(char *buffer)
+{
+	
 }
 
 void SorteiaPalavra(FILE *PtrArq, TpPessoa Usuario, TpDicionario &Palavra, int &lang)
@@ -344,18 +450,18 @@ int VerificaSorteio(TpPessoa Usuario, TpDicionario Palavra, int lang)
 	return 0;
 }
 
-/*
-void RegistrarPontos(TpDicionario Palavra, TpPessoa Usuario, int lang)
+
+void RegistrarPontos(TpDicionario Palavra, TpPessoa &Usuario, int lang)
 {
 	FILE *PtrArq;
 	PalavraSort Sorteado;
 	
-	TpPessoa.TotPontos += Palavra.Pontuacao;
+	Usuario.TotPontos += Palavra.Pontos;
 	strcpy(Sorteado.Login,Usuario.Login);
 	if(lang == 1)
-		strcpy(Sorteado.Palavra,Palavra.Port);
+		strcpy(Sorteado.Palavra,Palavra.port);
 	else
-		strcpy(Sorteado.Palavra,Palavra.Ing);
+		strcpy(Sorteado.Palavra,Palavra.ing);
 		
 	PtrArq = fopen("Pessoa.dat","rb+");
 	fseek(PtrArq,BuscaExaustivaPessoa(PtrArq, Usuario),SEEK_SET);
@@ -366,7 +472,7 @@ void RegistrarPontos(TpDicionario Palavra, TpPessoa Usuario, int lang)
 	fwrite(PtrArq,sizeof(PalavraSort),1,PtrArq);
 	fclose(PtrArq);
 }
-*/
+
 int TelaFim(int tipo)
 {
 	int continuar;
@@ -385,8 +491,10 @@ int TelaFim(int tipo)
 			{
 				case 'S':
 					continuar = 1;
+					break;
 				case 'N':
 					continuar = 0;
+					break;
 			}
 			
 			break;
@@ -402,8 +510,10 @@ int TelaFim(int tipo)
 			{
 				case 'S':
 					continuar = 1;
+					break;
 				case 'N':
 					continuar = 0;
+					break;
 			}
 			break;
 	}
@@ -439,8 +549,8 @@ void Enforcar(int tentativa)
 
 void strcat_char(char *Destino, char letra)
 {
-	Destino[strlen(Destino)] = letra;
-	Destino[strlen(Destino)+1] = '\0';	
+	Destino[strlen(Destino)+1] = '\0';
+	Destino[strlen(Destino)] = letra;	
 }
 
 void DesenhaForca(TpPessoa Usuario)
@@ -478,7 +588,7 @@ void DesenhaForca(TpPessoa Usuario)
 	putsxy("Pont. da Palavra: ",57,19);
 	putsxy("Sua Pont. Total: ",57,21);
 	putsxy("Usuario: ",5,5);
-	putsxy("Usuario_PH",14,5);
+	putsxy(Usuario.Login,14,5);
 }
 
 int TamanhoArquivo(FILE *PtrArq)
@@ -506,20 +616,32 @@ int Login(TpPessoa &User)
 		fseek(PtrArq, pos, SEEK_SET);
 		fread(&User,sizeof(TpPessoa),1,PtrArq);
 		gotoxy(10,7);
+		textcolor(cor_fundo);
 		scanf("%d", &senha);
+		textcolor(cor_texto);
 		if(senha == User.Senha)
 		{
 			fclose(PtrArq);
 			return 1;
 		}
 		else
-			putsxy("Senha incorreta!",3,9);
+			putsxy("Senha incorreta!",3,9); getch();
 	}
 	else
 		putsxy("Usuario não encontrado!",3,9);
 	
 	fclose(PtrArq);
 	return -1;
+}
+
+void BubbleSort(FILE *PtrArq, int tipo)
+{
+	int i, qtde;
+	TpPessoa PAux;
+	PtrArq = fopen("Pessoa.dat","rb+");
+	qtde=TamanhoArquivo(PtrArq);
+	
+    
 }
 
 // Executa uma ação de acordo com o valor retornado pelo Menu
@@ -1266,7 +1388,7 @@ void ConsultarCadPessoa(FILE *B_Arquivo)
 		printf("%d",Reg.TotPontos);
 		putsxy("Data de Cadastro: ",5,11);
 		gotoxy(23,11);
-		printf("%02d/%d/%d", Reg.Data.Dia, Reg.Data.Mes, Reg.Data.Ano);
+		printf("%02d/%02d/%d", Reg.Data.Dia, Reg.Data.Mes, Reg.Data.Ano);
 	}
 	else
 		putsxy("Usuario nao cadastrado!",5,7);
